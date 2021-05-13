@@ -1,16 +1,90 @@
 # -*- coding: utf-8 -*-
+import threading
+import time
+
+
+class ThreadSafeQueueException(Exception):
+    pass
+
+
 class ThreadSafeQueue(object):
+    def __init__(self, max_size=0):
+        self.queue = []
+        self.max_size = max_size
+        self.lock = threading.Lock()
+        self.condition = threading.Condition()
 
     # 当前队列元素数量
     def size(self):
-        pass
+        self.lock.acquire()
+        size = len(self.queue)
+        self.lock.release()
+        return size
 
     # 往队列里放入元素
     def put(self, item):
-        pass
+        if self.max_size != 0 and self.size() >= self.max_size:
+            return ThreadSafeQueueException()
+        # 加锁
+        self.lock.acquire()
+        self.queue.append(item)
+        # 解锁
+        self.lock.release()
+        # 通知
+        self.condition.acquire()
+        self.condition.notify()
+        self.condition.release()
 
     def batch_put(self, item_list):
-        pass
+        if not isinstance(item_list, list):
+            item_list = list(item_list)
+        for item in item_list:
+            self.put(item)
+
+    # 从队列取出元素
+    def pop(self, block=False, timeout=0):
+        if self.size() == 0:
+            # 需要阻塞等待
+            if block:
+                self.condition.acquire()
+                self.condition.wait(timeout=timeout)
+                self.condition.release()
+            else:
+                return None
+        if self.size() == 0:
+            return None
+        self.lock.acquire()
+        item = self.queue.pop()
+        self.lock.release()
+        return item
+
+    def get(self, index):
+        self.lock.acquire()
+        item = self.queue[index]
+        self.lock.release()
+        return item
 
 
+if __name__ == '__main__':
+    queue = ThreadSafeQueue(max_size=100)
 
+
+    def producer():
+        while True:
+            queue.put(1)
+            time.sleep(1)
+
+
+    def consumer():
+        while True:
+            item = queue.pop(block=True, timeout=2)
+            print(f"get item: {item}")
+            time.sleep(1)
+
+
+    thread1 = threading.Thread(target=producer)
+    thread2 = threading.Thread(target=consumer)
+    thread1.start()
+    thread2.start()
+    thread1.join()
+    thread2.join()
