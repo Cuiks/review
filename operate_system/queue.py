@@ -51,10 +51,10 @@ class ThreadSafeQueue(object):
                 self.condition.release()
             else:
                 return None
-        if self.size() == 0:
-            return None
         self.lock.acquire()
-        item = self.queue.pop()
+        item = None
+        if len(self.queue) > 0:
+            item = self.queue.pop()
         self.lock.release()
         return item
 
