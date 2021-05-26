@@ -67,6 +67,7 @@ def test_async_task2():
         result = async_task.get_result()
         print(f"get result in timestamp: {time.time()}, result: {result}")
 
+
 # 测试没有等待是否也可以正常获取结果
 def test_async_task3():
     def async_process():
@@ -88,6 +89,7 @@ def test_async_task3():
         result = async_task.get_result()
         print(f"get result in timestamp: {time.time()}, result: {result}")
 
+
 if __name__ == '__main__':
     # test()
-    test_async_task3()
+    test_async_task()
