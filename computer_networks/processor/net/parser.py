@@ -22,7 +22,7 @@ class IPParser(object):
         # eg: 11110000 => 1111
         ip_version = line1[0] >> 4
         # eg: 11111111 & 00001111 => 00001111
-        iph_length = line1[0] & 15
+        iph_length = line1[0] & 15 * 4
         packet_length = line1[2]
         # 第三行
         line3 = struct.unpack('>BBH', ip_header[8:12])

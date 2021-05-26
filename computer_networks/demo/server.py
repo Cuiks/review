@@ -1,14 +1,10 @@
 # -*- coding: utf-8 -*-
-import os
-import sys
-
-_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-sys.path.insert(0, _path)
 
 import json
 import socket
 
 from computer_networks.processor.net.parser import IPParser
+from computer_networks.processor.trans.parser import UDPParser, TCPParser
 from operate_system.pool import ThreadPool as tp
 from operate_system.task import AsyncTask
 
@@ -19,8 +15,20 @@ class ProcessTask(AsyncTask):
         super().__init__(func=self.process, *args, **kwargs)
 
     def process(self):
+        headers = {
+            "network_header": None,
+            "transport_header": None
+        }
         ip_header = IPParser.parse(self.packet)
-        return ip_header
+        headers["network_header"] = ip_header
+        # 17: UDP. 6: TCP
+        if ip_header["protocol"] == 17:
+            udp_header = UDPParser.parse(self.packet)
+            headers["transport_header"] = udp_header
+        elif ip_header["protocol"] == 6:
+            tcp_header = TCPParser.parse(self.packet)
+            headers["transport_header"] = tcp_header
+        return headers
 
 
 class Server(object):
@@ -28,7 +36,7 @@ class Server(object):
         # 工作协议类型、套接字类型、工作具体的协议
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_IP)
         # 自己的主机ip
-        self.ip = "172.19.6.43"
+        self.ip = "192.168.1.106"
         self.port = 8888
         self.sock.bind((self.ip, self.port))
 
